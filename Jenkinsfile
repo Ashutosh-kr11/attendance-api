@@ -1,10 +1,9 @@
 pipeline {
     agent any
     
-    // Removed the incorrect tools section
-    
     environment {
         SCAN_REPORT = 'dependency_scan_report.txt'
+        VENV_DIR = 'venv'
     }
     
     stages {
@@ -14,11 +13,15 @@ pipeline {
             }
         }
         
-        stage('Setup') {
+        stage('Setup Virtual Environment') {
             steps {
-                // Using system Python instead of tool installation
-                sh 'python3 -m pip install --upgrade pip'
-                sh 'pip3 install pip-audit'
+                sh 'python3 -m venv ${VENV_DIR}'
+                sh '''
+                    # Activate virtual environment and install tools
+                    . ${VENV_DIR}/bin/activate
+                    pip install --upgrade pip
+                    pip install pip-audit
+                '''
             }
         }
         
@@ -31,6 +34,9 @@ pipeline {
                     
                     // Check for requirements.txt
                     sh '''
+                        # Activate virtual environment
+                        . ${VENV_DIR}/bin/activate
+                        
                         if [ -f requirements.txt ]; then
                             echo "\\n\\nScanning requirements.txt:" >> ${SCAN_REPORT}
                             pip-audit -r requirements.txt --format text >> ${SCAN_REPORT} || true
@@ -41,6 +47,9 @@ pipeline {
                     
                     // Check for pyproject.toml
                     sh '''
+                        # Activate virtual environment
+                        . ${VENV_DIR}/bin/activate
+                        
                         if [ -f pyproject.toml ]; then
                             echo "\\n\\nScanning pyproject.toml:" >> ${SCAN_REPORT}
                             pip-audit -f pyproject.toml --format text >> ${SCAN_REPORT} || true
@@ -52,7 +61,7 @@ pipeline {
                     // Add summary
                     sh '''
                         echo "\\n\\nSummary:" >> ${SCAN_REPORT}
-                        grep -c "No known vulnerabilities found" ${SCAN_REPORT} >> ${SCAN_REPORT} || echo "Vulnerabilities detected. Review report for details." >> ${SCAN_REPORT}
+                        grep -c "No known vulnerabilities found" ${SCAN_REPORT} || echo "Vulnerabilities detected. Review report for details." >> ${SCAN_REPORT}
                     '''
                 }
             }
@@ -75,6 +84,9 @@ pipeline {
                 to: 'ashutosh.devpro@gmail.com',
                 mimeType: 'text/plain'
             )
+            
+            // Clean up virtual environment
+            sh 'rm -rf ${VENV_DIR}'
         }
     }
 }
