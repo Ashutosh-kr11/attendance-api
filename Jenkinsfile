@@ -1,9 +1,7 @@
 pipeline {
     agent any
     
-    tools {
-        python 'Python3' // Configure this in Jenkins global tool configuration
-    }
+    // Removed the incorrect tools section
     
     environment {
         SCAN_REPORT = 'dependency_scan_report.txt'
@@ -18,8 +16,9 @@ pipeline {
         
         stage('Setup') {
             steps {
-                sh 'python -m pip install --upgrade pip'
-                sh 'pip install pip-audit'
+                // Using system Python instead of tool installation
+                sh 'python3 -m pip install --upgrade pip'
+                sh 'pip3 install pip-audit'
             }
         }
         
