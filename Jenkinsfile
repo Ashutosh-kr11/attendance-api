@@ -28,9 +28,11 @@ pipeline {
         stage('Scan Dependencies') {
             steps {
                 script {
-                    // Create report file
-                    sh "echo 'Python Dependency Scan Report - ${BUILD_TIMESTAMP}' > ${SCAN_REPORT}"
-                    sh "echo '=======================================' >> ${SCAN_REPORT}"
+                    // Create report file with current date using shell command
+                    sh '''
+                        echo "Python Dependency Scan Report - $(date '+%Y-%m-%d %H:%M:%S')" > ${SCAN_REPORT}
+                        echo "=======================================" >> ${SCAN_REPORT}
+                    '''
                     
                     // Check for requirements.txt
                     sh '''
@@ -61,7 +63,11 @@ pipeline {
                     // Add summary
                     sh '''
                         echo "\\n\\nSummary:" >> ${SCAN_REPORT}
-                        grep -c "No known vulnerabilities found" ${SCAN_REPORT} || echo "Vulnerabilities detected. Review report for details." >> ${SCAN_REPORT}
+                        if grep -q "No known vulnerabilities found" ${SCAN_REPORT}; then
+                            echo "No vulnerabilities detected." >> ${SCAN_REPORT}
+                        else
+                            echo "Vulnerabilities may be present. Review report for details." >> ${SCAN_REPORT}
+                        fi
                     '''
                 }
             }
